@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>VibeTone.xyz</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <style>
+    :root {
+      --bg: #0b0b0d;
+      --panel: #141417;
+      --text: #e6e6eb;
+      --muted: #8a8a93;
+      --accent: #6cf2c2;
+      --danger: #ff6b6b;
+      --border: rgba(255,255,255,0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      overflow-x: hidden;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    /* ===== SYSTEM HEADER ===== */
+
+    header {
+      padding: 24px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .logo {
+      font-size: 22px;
+      letter-spacing: 1px;
+    }
+
+    .subtitle {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    .session {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 12px;
+    }
+
+    /* ===== LIVE VIBE STATE ===== */
+
+    .state-panel {
+      padding: 24px;
+      border-bottom: 1px solid var(--border);
+      background: var(--panel);
+    }
+
+    .state-title {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 12px;
+    }
+
+    .state-row {
+      margin-bottom: 6px;
+    }
+
+    .bar {
+      height: 6px;
+      background: rgba(255,255,255,0.1);
+      margin-top: 4px;
+      position: relative;
+    }
+
+    .bar span {
+      position: absolute;
+      left: 0;
+      top: 0;
+      height: 100%;
+      background: var(--accent);
+    }
+
+    .recalibrate {
+      margin-top: 14px;
+      font-size: 12px;
+      color: var(--accent);
+      cursor: pointer;
+    }
+
+    /* ===== MUSIC SPACE FIELD ===== */
+
+    .space-field {
+      padding: 32px 24px;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 20px;
+    }
+
+    .track {
+      border: 1px solid var(--border);
+      padding: 16px;
+      background: #0f0f13;
+      transition: transform 0.2s, border-color 0.2s;
+      position: relative;
+    }
+
+    .track:hover {
+      transform: translateY(-4px);
+      border-color: var(--accent);
+    }
+
+    .track.locked {
+      opacity: 0.4;
+    }
+
+    .track.archived {
+      opacity: 0.6;
+    }
+
+    .track-title {
+      font-size: 14px;
+      margin-bottom: 6px;
+    }
+
+    .track-meta {
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+
+    .enter {
+      margin-top: 12px;
+      font-size: 12px;
+      color: var(--accent);
+      cursor: pointer;
+    }
+
+    /* ===== EXPLORE MODE ===== */
+
+    .explore {
+      padding: 20px 24px;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      background: var(--panel);
+    }
+
+    .explore span {
+      margin-right: 16px;
+      font-size: 12px;
+      cursor: pointer;
+      color: var(--muted);
+    }
+
+    .explore .active {
+      color: var(--accent);
+    }
+
+    /* ===== FOOTNOTE ===== */
+
+    footer {
+      padding: 24px;
+      font-size: 11px;
+      color: var(--muted);
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- SYSTEM HEADER -->
+  <header>
+    <div class="logo">VibeTone</div>
+    <div class="subtitle">A Collection of Sonic Spaces</div>
+    <div class="session">SESSION: #<span id="sessionId"></span></div>
+  </header>
+
+  <!-- LIVE VIBE STATE -->
+  <section class="state-panel">
+    <div class="state-title">CURRENT SYSTEM STATE</div>
+
+    <div class="state-row">VIBE: <span id="vibeText"></span></div>
+    <div class="state-row">TONE: <span id="toneText"></span></div>
+
+    <div class="state-row">
+      ENERGY
+      <div class="bar"><span id="energyBar"></span></div>
+    </div>
+    <div class="state-row">
+      DENSITY
+      <div class="bar"><span id="densityBar"></span></div>
+    </div>
+    <div class="state-row">
+      NOISE
+      <div class="bar"><span id="noiseBar"></span></div>
+    </div>
+
+    <div class="recalibrate" onclick="recalibrate()">[ recalibrate ]</div>
+  </section>
+
+  <!-- MUSIC SPACE FIELD -->
+  <section class="space-field" id="spaceField"></section>
+
+  <!-- EXPLORE MODE -->
+  <section class="explore">
+    <span class="active" onclick="setMode('vibe', this)">BY VIBE</span>
+    <span onclick="setMode('tone', this)">BY TONE</span>
+    <span onclick="setMode('time', this)">BY TIME</span>
+    <span onclick="setMode('random', this)">RANDOM</span>
+  </section>
+
+  <!-- FOOTNOTE -->
+  <footer>
+    VibeTone is an experimental archive where music becomes space.<br/>
+    Created by VibeTone
+  </footer>
+
+  <script>
+    const vibes = ["LOW SIGNAL", "EMPTY", "PRESSURE", "NIGHT"];
+    const tones = ["ANALOG", "DUSTY", "COLD", "DISTORTED"];
+
+    const tracks = [
+      {
+        id: "TRACK_001",
+        title: "Recorded as Blank",
+        vibe: "EMPTY / NIGHT",
+        tone: "COLD / MINIMAL",
+        status: "active",
+        time: 1
+      },
+      {
+        id: "TRACK_002",
+        title: "Pressure Loop",
+        vibe: "PRESSURE",
+        tone: "DISTORTED",
+        status: "active",
+        time: 2
+      },
+      {
+        id: "TRACK_003",
+        title: "Residual Memory",
+        vibe: "LOW SIGNAL",
+        tone: "ANALOG",
+        status: "archived",
+        time: 3
+      },
+      {
+        id: "???",
+        title: "SIGNAL LOST",
+        vibe: "UNKNOWN",
+        tone: "UNKNOWN",
+        status: "locked",
+        time: 4
+      }
+    ];
+
+    function randomInt(max) {
+      return Math.floor(Math.random() * max);
+    }
+
+    function recalibrate() {
+      document.getElementById("vibeText").textContent =
+        vibes[randomInt(vibes.length)];
+      document.getElementById("toneText").textContent =
+        tones[randomInt(tones.length)];
+
+      const energy = randomInt(100);
+      const density = randomInt(100);
+      const noise = randomInt(100);
+
+      document.getElementById("energyBar").style.width = energy + "%";
+      document.getElementById("densityBar").style.width = density + "%";
+      document.getElementById("noiseBar").style.width = noise + "%";
+    }
+
+    function renderTracks(list) {
+      const field = document.getElementById("spaceField");
+      field.innerHTML = "";
+
+      list.forEach(t => {
+        const div = document.createElement("div");
+        div.className = `track ${t.status}`;
+        div.innerHTML = `
+          <div class="track-title">${t.id}</div>
+          <div class="track-meta">"${t.title}"</div>
+          <div class="track-meta">VIBE: ${t.vibe}</div>
+          <div class="track-meta">TONE: ${t.tone}</div>
+          <div class="track-meta">STATUS: ${t.status.toUpperCase()}</div>
+          ${t.status === "active" ? '<div class="enter">[ ENTER SPACE ]</div>' : ""}
+        `;
+        field.appendChild(div);
+      });
+    }
+
+    function setMode(mode, el) {
+      document.querySelectorAll(".explore span").forEach(s => s.classList.remove("active"));
+      el.classList.add("active");
+
+      let sorted = [...tracks];
+
+      if (mode === "time") {
+        sorted.sort((a,b) => a.time - b.time);
+      }
+
+      if (mode === "random") {
+        sorted.sort(() => Math.random() - 0.5);
+      }
+
+      renderTracks(sorted);
+    }
+
+    document.getElementById("sessionId").textContent =
+      Math.floor(Math.random() * 900000 + 100000);
+
+    recalibrate();
+    renderTracks(tracks);
+  </script>
+
+</body>
+</html>
